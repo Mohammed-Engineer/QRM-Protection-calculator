@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QRM Protection Relay Calculator — ADDC Abu Dhabi</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600;700;900&family=Barlow+Condensed:wght@700;900&display=swap');
+
+  :root {
+    --navy:   #0a1628;
+    --blue:   #0d47a1;
+    --cyan:   #00b4d8;
+    --green:  #00e676;
+    --red:    #ff1744;
+    --amber:  #ffab00;
+    --purple: #7c4dff;
+    --white:  #e8f4fd;
+    --dim:    #4a6fa5;
+    --panel:  #0d1f3c;
+    --border: #1a3a6b;
+    --mono:   'Share Tech Mono', monospace;
+    --sans:   'Barlow', sans-serif;
+    --cond:   'Barlow Condensed', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--navy);
+    color: var(--white);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,180,216,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,180,216,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .container { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+
+  /* ── HEADER ─────────────────────────────────────────────── */
+  header {
+    background: linear-gradient(135deg, #040d1a 0%, #0a1f3d 50%, #001040 100%);
+    border-bottom: 2px solid var(--cyan);
+    padding: 32px 20px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    top: -50%; left: -10%;
+    width: 120%; height: 200%;
+    background: radial-gradient(ellipse at 20% 50%, rgba(0,180,216,0.08) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .header-inner { max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; }
+  .header-badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--cyan);
+    border: 1px solid var(--cyan);
+    padding: 3px 10px;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+    animation: pulse-border 2s ease-in-out infinite;
+  }
+  @keyframes pulse-border {
+    0%,100% { box-shadow: 0 0 0 0 rgba(0,180,216,0.4); }
+    50% { box-shadow: 0 0 0 6px rgba(0,180,216,0); }
+  }
+  h1 {
+    font-family: var(--cond);
+    font-size: clamp(28px, 5vw, 52px);
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -1px;
+    text-transform: uppercase;
+  }
+  h1 span { color: var(--cyan); }
+  .header-sub {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--dim);
+    margin-top: 10px;
+    letter-spacing: 1px;
+  }
+  .header-meta {
+    display: flex;
+    gap: 24px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  .meta-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--amber);
+    background: rgba(255,171,0,0.1);
+    border: 1px solid rgba(255,171,0,0.3);
+    padding: 4px 10px;
+    border-radius: 2px;
+  }
+
+  /* ── SECTIONS ───────────────────────────────────────────── */
+  section { padding: 32px 0 0; }
+  .section-title {
+    font-family: var(--cond);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--cyan);
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 16px;
+    background: var(--cyan);
+  }
+
+  /* ── CARDS ──────────────────────────────────────────────── */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--cyan);
+  }
+  .card.green::before  { background: var(--green); }
+  .card.amber::before  { background: var(--amber); }
+  .card.purple::before { background: var(--purple); }
+  .card.red::before    { background: var(--red); }
+
+  /* ── GRID LAYOUTS ───────────────────────────────────────── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  @media(max-width:900px) { .grid-2,.grid-3,.grid-4 { grid-template-columns: 1fr; } }
+
+  /* ── RELAY INFO CARDS ───────────────────────────────────── */
+  .relay-block { margin-bottom: 20px; }
+  .relay-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .relay-value {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: bold;
+    color: var(--white);
+  }
+  .relay-value small {
+    font-size: 13px;
+    color: var(--dim);
+    margin-left: 4px;
+  }
+
+  /* ── SETTINGS INPUTS ────────────────────────────────────── */
+  .settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .input-group label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--cyan);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .input-group input,
+  .input-group select {
+    width: 100%;
+    background: rgba(0,180,216,0.06);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--white);
+    font-family: var(--mono);
+    font-size: 16px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .input-group input:focus,
+  .input-group select:focus {
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 2px rgba(0,180,216,0.15);
+  }
+  .input-group select option { background: var(--navy); }
+
+  /* ── CALCULATE BUTTON ───────────────────────────────────── */
+  .btn-calc {
+    background: linear-gradient(135deg, var(--blue), var(--cyan));
+    border: none;
+    color: white;
+    font-family: var(--cond);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 14px 36px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    display: block;
+    width: 100%;
+    margin-top: 8px;
+  }
+  .btn-calc:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,180,216,0.3);
+  }
+  .btn-calc:active { transform: translateY(0); }
+
+  /* ── RESULTS TABLE ──────────────────────────────────────── */
+  .results-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+  .results-table th {
+    background: rgba(0,180,216,0.1);
+    color: var(--cyan);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .results-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(26,58,107,0.5);
+    vertical-align: middle;
+  }
+  .results-table tr:last-child td { border-bottom: none; }
+  .results-table tr:hover td { background: rgba(0,180,216,0.04); }
+
+  /* ── STATUS BADGES ──────────────────────────────────────── */
+  .badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    padding: 3px 10px;
+    border-radius: 2px;
+  }
+  .badge-pass  { background: rgba(0,230,118,0.15); color: var(--green); border: 1px solid rgba(0,230,118,0.3); }
+  .badge-fail  { background: rgba(255,23,68,0.15);  color: var(--red);   border: 1px solid rgba(255,23,68,0.3); }
+  .badge-inst  { background: rgba(255,171,0,0.15);  color: var(--amber); border: 1px solid rgba(255,171,0,0.3); }
+  .badge-sbef  { background: rgba(124,77,255,0.15); color: #b39ddb;      border: 1px solid rgba(124,77,255,0.3); }
+
+  /* ── TRIP TIME DISPLAY ──────────────────────────────────── */
+  .trip-display {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .trip-card {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 16px;
+    text-align: center;
+    transition: border-color 0.3s, transform 0.2s;
+  }
+  .trip-card:hover { transform: translateY(-2px); }
+  .trip-card.oc   { border-top: 3px solid var(--cyan); }
+  .trip-card.ef   { border-top: 3px solid var(--green); }
+  .trip-card.sbef { border-top: 3px solid var(--purple); }
+  .trip-card.inst { border-top: 3px solid var(--red); }
+  .trip-func {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .trip-time {
+    font-family: var(--mono);
+    font-size: 32px;
+    font-weight: bold;
+    line-height: 1;
+  }
+  .trip-time.oc   { color: var(--cyan); }
+  .trip-time.ef   { color: var(--green); }
+  .trip-time.sbef { color: #b39ddb; }
+  .trip-time.inst { color: var(--red); }
+  .trip-unit {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--dim);
+    margin-top: 4px;
+  }
+  .trip-status { margin-top: 8px; }
+
+  /* ── M SLIDER ───────────────────────────────────────────── */
+  .slider-wrap { margin: 20px 0 8px; }
+  .slider-wrap label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--cyan);
+    letter-spacing: 1px;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  input[type=range] {
+    width: 100%;
+    accent-color: var(--cyan);
+    height: 4px;
+    cursor: pointer;
+  }
+
+  /* ── VERIFICATION TABLE ─────────────────────────────────── */
+  .verify-pass td:last-child { color: var(--green); font-weight: bold; }
+  .verify-fail td:last-child { color: var(--red); font-weight: bold; }
+  .diff-ok  { color: var(--green); }
+  .diff-bad { color: var(--red); }
+
+  /* ── TIMELINE ANIMATION ─────────────────────────────────── */
+  .timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-top: 16px;
+    position: relative;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 28px; top: 0; bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--red), var(--amber), var(--cyan), var(--green));
+    z-index: 0;
+  }
+  .tl-step {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 10px 0;
+    position: relative;
+    z-index: 1;
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+  .tl-step.visible { opacity: 1; transform: translateX(0); }
+  .tl-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid;
+    background: var(--navy);
+    flex-shrink: 0;
+    margin-left: 20px;
+    position: relative;
+    z-index: 2;
+  }
+  .tl-dot.red    { border-color: var(--red);    box-shadow: 0 0 8px var(--red); }
+  .tl-dot.amber  { border-color: var(--amber);  box-shadow: 0 0 8px var(--amber); }
+  .tl-dot.cyan   { border-color: var(--cyan);   box-shadow: 0 0 8px var(--cyan); }
+  .tl-dot.green  { border-color: var(--green);  box-shadow: 0 0 8px var(--green); }
+  .tl-dot.purple { border-color: var(--purple); box-shadow: 0 0 8px var(--purple); }
+  .tl-content { flex: 1; }
+  .tl-time {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--dim);
+    margin-bottom: 2px;
+  }
+  .tl-event {
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--white);
+  }
+  .tl-detail {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--dim);
+    margin-top: 2px;
+  }
+
+  /* ── CHART WRAPPER ──────────────────────────────────────── */
+  .chart-wrap {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px;
+    position: relative;
+  }
+  .chart-wrap canvas { max-height: 420px; }
+
+  /* ── FOOTER ─────────────────────────────────────────────── */
+  footer {
+    margin-top: 48px;
+    border-top: 1px solid var(--border);
+    padding: 24px 20px;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--dim);
+    letter-spacing: 1px;
+  }
+  footer span { color: var(--cyan); }
+
+  /* ── LIVE INDICATOR ─────────────────────────────────────── */
+  .live-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    background: var(--green);
+    border-radius: 50%;
+    margin-right: 6px;
+    animation: blink 1.2s ease-in-out infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+  /* ── CURVE LEGEND ───────────────────────────────────────── */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--dim);
+  }
+  .legend-line {
+    width: 28px; height: 3px;
+    border-radius: 2px;
+  }
+
+  /* Number highlight */
+  .num { font-family: var(--mono); color: var(--cyan); }
+
+  .pb { padding-bottom: 32px; }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ───────────────────────────────────────────────── -->
+<header>
+  <div class="header-inner">
+    <div class="header-badge">IEC 60255-151 — PROTECTION RELAY CALCULATOR</div>
+    <h1>11kV <span>QRM</span> Protection<br>Relay Calculator</h1>
+    <p class="header-sub">Overcurrent · Earth Fault · Standby Earth Fault (SBEF) · All Four IEC IDMT Curves</p>
+    <div class="header-meta">
+      <div class="meta-tag">CLIENT: ADDC — Abu Dhabi</div>
+      <div class="meta-tag">RELAY: FANOX — EI / NI Curves</div>
+      <div class="meta-tag">EQUIPMENT: Lucy VRE 2a  12kV RMU</div>
+      <div class="meta-tag">AUTHOR: Mohammed Azam Ali  MIET</div>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+<!-- ── SECTION 1: RELAY INFORMATION ─────────────────────────── -->
+<section>
+  <div class="section-title">01 — Relay Information (Pre-loaded from ADDC Site)</div>
+  <div class="grid-3">
+    <div class="card">
+      <div class="relay-label">Transformer Rating</div>
+      <div class="relay-value">1500 <small>kVA</small></div>
+      <div class="relay-label" style="margin-top:14px">Vector Group</div>
+      <div class="relay-value" style="font-size:16px">Dyn11 <small>ONAN</small></div>
+      <div class="relay-label" style="margin-top:14px">Impedance</div>
+      <div class="relay-value">6.22 <small>%</small></div>
+    </div>
+    <div class="card green">
+      <div class="relay-label">HV Relay (Overcurrent + EF)</div>
+      <div class="relay-value" style="font-size:16px; color: var(--cyan)">Fanox</div>
+      <div class="relay-label" style="margin-top:10px">CT Ratio</div>
+      <div class="relay-value">100 <small>/ 1A</small></div>
+      <div class="relay-label" style="margin-top:10px">Rated FLC</div>
+      <div class="relay-value">83.3 <small>A primary</small></div>
+    </div>
+    <div class="card purple">
+      <div class="relay-label">LV Relay (SBEF)</div>
+      <div class="relay-value" style="font-size:16px; color:#b39ddb">Fanox SIA-C</div>
+      <div class="relay-label" style="margin-top:10px">CT Ratio</div>
+      <div class="relay-value">2000 <small>/ 1A</small></div>
+      <div class="relay-label" style="margin-top:10px">Purpose</div>
+      <div style="font-family:var(--mono); font-size:12px; color:var(--dim); margin-top:4px">Standby Earth Fault — LV 415V side sensitive detection</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 2: SETTINGS INPUT ─────────────────────────────── -->
+<section>
+  <div class="section-title">02 — Enter Relay Settings</div>
+  <div class="grid-2">
+
+    <!-- OC + EF -->
+    <div class="card">
+      <div style="font-family:var(--mono); font-size:11px; color:var(--cyan); letter-spacing:2px; margin-bottom:16px">
+        ▶ OVERCURRENT + EARTH FAULT  (51 / 51N)
+      </div>
+      <div class="settings-grid">
+        <div class="input-group">
+          <label>OC Pickup Is (× In)</label>
+          <input type="number" id="oc_is" value="0.85" step="0.01" min="0.1" max="4">
+        </div>
+        <div class="input-group">
+          <label>OC TMS</label>
+          <input type="number" id="oc_tms" value="0.6" step="0.025" min="0.05" max="2">
+        </div>
+        <div class="input-group">
+          <label>OC Curve</label>
+          <select id="oc_curve">
+            <option value="EI" selected>EI — Extremely Inverse</option>
+            <option value="SI">SI — Standard Inverse</option>
+            <option value="VI">VI — Very Inverse</option>
+            <option value="NI">NI — Normal Inverse</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>CT Ratio</label>
+          <input type="number" id="ct_ratio" value="100" step="1" min="1">
+        </div>
+        <div class="input-group">
+          <label>EF Pickup Is (× In)</label>
+          <input type="number" id="ef_is" value="0.2" step="0.01" min="0.05" max="1">
+        </div>
+        <div class="input-group">
+          <label>EF TMS</label>
+          <input type="number" id="ef_tms" value="0.1" step="0.025" min="0.05" max="2">
+        </div>
+        <div class="input-group">
+          <label>EF Curve</label>
+          <select id="ef_curve">
+            <option value="NI" selected>NI — Normal Inverse</option>
+            <option value="SI">SI — Standard Inverse</option>
+            <option value="EI">EI — Extremely Inverse</option>
+            <option value="VI">VI — Very Inverse</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>I>> High Set (× In)</label>
+          <input type="number" id="inst_set" value="15" step="0.5" min="1">
+        </div>
+      </div>
+    </div>
+
+    <!-- SBEF -->
+    <div class="card purple">
+      <div style="font-family:var(--mono); font-size:11px; color:#b39ddb; letter-spacing:2px; margin-bottom:16px">
+        ▶ STANDBY EARTH FAULT — SBEF  (64)
+      </div>
+      <div class="settings-grid">
+        <div class="input-group">
+          <label>SBEF Pickup Is (× In)</label>
+          <input type="number" id="sbef_is" value="0.2" step="0.01" min="0.05" max="1">
+        </div>
+        <div class="input-group">
+          <label>SBEF TMS</label>
+          <input type="number" id="sbef_tms" value="0.8" step="0.025" min="0.05" max="2">
+        </div>
+        <div class="input-group">
+          <label>SBEF Curve</label>
+          <select id="sbef_curve">
+            <option value="EI" selected>EI — Extremely Inverse</option>
+            <option value="SI">SI — Standard Inverse</option>
+            <option value="VI">VI — Very Inverse</option>
+            <option value="NI">NI — Normal Inverse</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>SBEF CT Ratio</label>
+          <input type="number" id="sbef_ct" value="2000" step="1" min="1">
+        </div>
+      </div>
+      <div style="background:rgba(124,77,255,0.08); border:1px solid rgba(124,77,255,0.2); border-radius:3px; padding:12px; margin-top:8px;">
+        <div style="font-family:var(--mono); font-size:10px; color:#b39ddb; letter-spacing:1px; margin-bottom:6px">WHAT IS SBEF?</div>
+        <div style="font-family:var(--sans); font-size:12px; color:var(--dim); line-height:1.6">
+          Standby Earth Fault relay sits on the LV 415V side. It detects high-impedance earth faults that the HV earth fault relay cannot see. Very sensitive — typically 5% of FLC. Operates as backup if main earth fault relay fails.
+        </div>
+      </div>
+      <button class="btn-calc" onclick="calculate()" style="margin-top:16px">
+        ⚡ CALCULATE ALL SETTINGS
+      </button>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── SECTION 3: TRIP TIME CALCULATOR ───────────────────────── -->
+<section>
+  <div class="section-title">03 — Live Trip Time Calculator</div>
+  <div class="card">
+    <div class="slider-wrap">
+      <label>
+        <span>Fault Multiple  M = I_fault / Is</span>
+        <span class="num" id="m_display">M = 5.0 ×</span>
+      </label>
+      <input type="range" id="m_slider" min="1.1" max="10" step="0.1" value="5" oninput="updateSlider()">
+      <div style="display:flex; justify-content:space-between; font-family:var(--mono); font-size:10px; color:var(--dim); margin-top:4px">
+        <span>1× pickup</span>
+        <span style="color:var(--amber)">▲ 2× (your site test)</span>
+        <span style="color:var(--cyan)">▲ 5× (your site test)</span>
+        <span>10×</span>
+      </div>
+      <div style="display:flex; gap:10px; margin-top:12px">
+        <button onclick="document.getElementById('m_slider').value=2; updateSlider();"
+          style="flex:1; background:rgba(255,171,0,0.15); border:1px solid var(--amber); color:var(--amber);
+                 font-family:var(--mono); font-size:12px; padding:8px; border-radius:3px; cursor:pointer; letter-spacing:1px">
+          SET 2× — ADDC TEST 1
+        </button>
+        <button onclick="document.getElementById('m_slider').value=5; updateSlider();"
+          style="flex:1; background:rgba(0,180,216,0.15); border:1px solid var(--cyan); color:var(--cyan);
+                 font-family:var(--mono); font-size:12px; padding:8px; border-radius:3px; cursor:pointer; letter-spacing:1px">
+          SET 5× — ADDC TEST 2
+        </button>
+      </div>
+      <div id="test-explain" style="font-family:var(--mono); font-size:11px; color:var(--dim); 
+           background:rgba(0,0,0,0.3); border:1px solid var(--border); border-radius:3px; 
+           padding:10px; margin-top:10px; line-height:1.8">
+        ℹ️  2× means you injected 2 × 0.85 = 1.70A into the relay — this is ADDC Test 1<br>
+        ℹ️  5× means you injected 5 × 0.85 = 4.25A into the relay — this is ADDC Test 2<br>
+        ⚡ The trip time at 5× is NOT 5 seconds — it is 2 seconds because the EI curve formula decides the time
+      </div>
+    </div>
+    <div class="trip-display">
+      <div class="trip-card oc">
+        <div class="trip-func">OVERCURRENT 51</div>
+        <div class="trip-time oc" id="oc_time">—</div>
+        <div class="trip-unit">seconds</div>
+        <div class="trip-status" id="oc_status"></div>
+      </div>
+      <div class="trip-card ef">
+        <div class="trip-func">EARTH FAULT 51N</div>
+        <div class="trip-time ef" id="ef_time">—</div>
+        <div class="trip-unit">seconds</div>
+        <div class="trip-status" id="ef_status"></div>
+      </div>
+      <div class="trip-card sbef">
+        <div class="trip-func">SBEF 64</div>
+        <div class="trip-time sbef" id="sbef_time">—</div>
+        <div class="trip-unit">seconds</div>
+        <div class="trip-status" id="sbef_status"></div>
+      </div>
+      <div class="trip-card inst">
+        <div class="trip-func">INSTANTANEOUS I>></div>
+        <div class="trip-time inst" id="inst_time">—</div>
+        <div class="trip-unit">seconds</div>
+        <div class="trip-status"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 4: COORDINATION GRAPH ─────────────────────────── -->
+<section>
+  <div class="section-title">04 — IDMT Coordination Curves</div>
+  <div class="chart-wrap">
+    <div class="legend" id="curve-legend"></div>
+    <canvas id="coordChart"></canvas>
+  </div>
+</section>
+
+<!-- ── SECTION 5: SETTINGS TABLE ─────────────────────────────── -->
+<section>
+  <div class="section-title">05 — Relay Settings Summary</div>
+  <div class="card">
+    <table class="results-table" id="settings-table">
+      <thead>
+        <tr>
+          <th>Function</th>
+          <th>ANSI Code</th>
+          <th>Is Setting</th>
+          <th>TMS</th>
+          <th>Curve</th>
+          <th>At 2×Is</th>
+          <th>At 5×Is</th>
+          <th>At 10×Is</th>
+        </tr>
+      </thead>
+      <tbody id="settings-body"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ── SECTION 6: TEST VERIFICATION ──────────────────────────── -->
+<section>
+  <div class="section-title">06 — ADDC Site Test Verification  <span class="live-dot"></span> Real Data</div>
+  <div class="card amber">
+    <div style="font-family:var(--mono); font-size:11px; color:var(--amber); margin-bottom:16px; letter-spacing:1px">
+      Secondary injection results from Mafraq Area Substation, Abu Dhabi — compared against IEC 60255 calculated values. Tolerance ±10%.
+    </div>
+    <table class="results-table" id="verify-table">
+      <thead>
+        <tr>
+          <th>Relay</th>
+          <th>Test Condition</th>
+          <th>Setting</th>
+          <th>Calculated (s)</th>
+          <th>Measured (s)</th>
+          <th>Error %</th>
+          <th>Result</th>
+        </tr>
+      </thead>
+      <tbody id="verify-body"></tbody>
+    </table>
+    <div id="verify-summary" style="text-align:center; margin-top:16px; font-family:var(--mono); font-size:13px;"></div>
+  </div>
+</section>
+
+<!-- ── SECTION 6B: HIGH SET TEST ─────────────────────────────────── -->
+<section>
+  <div class="section-title">06B — High Set Test Results  <span class="live-dot"></span> Real ADDC Data</div>
+
+  <!-- Explanation strip -->
+  <div style="background:rgba(0,0,0,0.35); border:1px solid var(--border); border-radius:4px;
+              padding:16px; margin-bottom:16px; font-family:var(--mono); font-size:12px; line-height:2.0">
+    <div style="color:var(--amber); letter-spacing:2px; font-size:10px; margin-bottom:8px">
+      THREE SEPARATE PROTECTION ELEMENTS — ALL INSIDE ONE FANOX RELAY
+    </div>
+    <div style="display:grid; grid-template-columns:auto 1fr; gap:4px 20px; color:var(--dim)">
+      <span style="color:var(--cyan)">I>  (51)</span>
+      <span>IDMT overcurrent — trips after time delay — EI curve — you already verified this above</span>
+      <span style="color:var(--amber)">I>> (50)</span>
+      <span>Instantaneous high set — trips in milliseconds when current exceeds 15× In — for heavy close-in faults</span>
+      <span style="color:var(--purple)">I>>> (49)</span>
+      <span>Thermal / lockout element — trips after 180 seconds — protects against continuous overload</span>
+    </div>
+  </div>
+
+  <!-- Part 1: I>> High Set Instantaneous -->
+  <div class="card amber" style="margin-bottom:16px">
+    <div style="font-family:var(--mono); font-size:11px; color:var(--amber); letter-spacing:2px; margin-bottom:12px">
+      PART A — HIGH SET INSTANTANEOUS  I>> and Ie>>  (ANSI 50)
+    </div>
+    <div style="font-family:var(--sans); font-size:12px; color:var(--dim); margin-bottom:16px; line-height:1.7">
+      Set at 15× In for overcurrent and 4× In for earth fault. Trips in milliseconds — no IDMT timing.
+      Used for heavy faults very close to the transformer where damage would occur within one cycle.
+      Pickup tolerance check: relay must pick up within ±5% of setting.
+    </div>
+    <table class="results-table">
+      <thead>
+        <tr>
+          <th>Phase</th>
+          <th>Function</th>
+          <th>Setting (A)</th>
+          <th>Expected Pickup Range</th>
+          <th>Actual Pickup (A)</th>
+          <th>Operating Time</th>
+          <th>Max Allowed</th>
+          <th>Result</th>
+        </tr>
+      </thead>
+      <tbody id="highset1-body"></tbody>
+    </table>
+  </div>
+
+  <!-- Part 2: I>>> Thermal Lockout -->
+  <div class="card purple">
+    <div style="font-family:var(--mono); font-size:11px; color:#b39ddb; letter-spacing:2px; margin-bottom:12px">
+      PART B — THERMAL / LOCKOUT ELEMENT  I>>> and Ie>>>  (ANSI 49)
+    </div>
+    <div style="font-family:var(--sans); font-size:12px; color:var(--dim); margin-bottom:16px; line-height:1.7">
+      Set at 0.78× In. Operating time 180 seconds. This is NOT instantaneous — it is a definite time element.
+      It detects sustained overload conditions that would cause thermal damage to the transformer winding over time.
+      180 seconds allows temporary overloads to ride through without tripping.
+    </div>
+    <table class="results-table">
+      <thead>
+        <tr>
+          <th>Phase</th>
+          <th>Function</th>
+          <th>Setting (A)</th>
+          <th>Expected Pickup Range</th>
+          <th>Actual Pickup (A)</th>
+          <th>Operating Time (s)</th>
+          <th>Expected Time (s)</th>
+          <th>Result</th>
+        </tr>
+      </thead>
+      <tbody id="highset2-body"></tbody>
+    </table>
+    <div style="background:rgba(124,77,255,0.08); border:1px solid rgba(124,77,255,0.2); 
+                border-radius:3px; padding:12px; margin-top:16px; font-family:var(--mono); font-size:11px; 
+                color:var(--dim); line-height:1.8">
+      <span style="color:#b39ddb">WHY 180 SECONDS?</span><br>
+      Transformer windings have thermal mass — they take time to heat up. A brief overload for a few seconds
+      causes no damage. Sustained overload for 3 minutes (180s) causes insulation degradation and eventual
+      failure. The 180s setting matches the transformer thermal damage curve at this overload level.
+      <br><br>
+      <span style="color:#b39ddb">WHY 0.78× In SETTING?</span><br>
+      This is deliberately set BELOW full load current (below 1× In). It monitors the transformer continuously
+      and trips on sustained overcurrent before thermal damage accumulates. Note: Earth fault element I>>> 
+      not applicable (shown as dash in your test report — correct for this protection scheme).
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div id="highset-summary" style="text-align:center; margin-top:16px; font-family:var(--mono); font-size:13px;
+       background:rgba(0,0,0,0.3); border:1px solid var(--border); border-radius:4px; padding:14px;">
+  </div>
+</section>
+
+<!-- ── SECTION 7: FAULT TIMELINE ──────────────────────────────── -->
+<section class="pb">
+  <div class="section-title">07 — Fault to Trip Timeline</div>
+  <div class="grid-2">
+    <div class="card">
+      <div style="font-family:var(--mono); font-size:11px; color:var(--cyan); letter-spacing:2px; margin-bottom:4px">SELECT FAULT SCENARIO</div>
+      <select id="scenario_select" onchange="runTimeline()" style="width:100%; background:rgba(0,180,216,0.06); border:1px solid var(--border); border-radius:3px; color:var(--white); font-family:var(--mono); font-size:14px; padding:10px 12px; outline:none; margin-bottom:16px;">
+        <option value="oc5">Overcurrent fault at 5× Is</option>
+        <option value="oc2">Overcurrent fault at 2× Is</option>
+        <option value="ef">Earth fault at 5× Is (EF relay)</option>
+        <option value="sbef">High impedance earth fault (SBEF)</option>
+        <option value="inst">Heavy fault — Instantaneous I>></option>
+      </select>
+      <div class="timeline" id="timeline"></div>
+    </div>
+    <div class="card green">
+      <div style="font-family:var(--mono); font-size:11px; color:var(--green); letter-spacing:2px; margin-bottom:16px">CURVE EQUATIONS — IEC 60255-151</div>
+      <div style="background:rgba(0,0,0,0.3); border-radius:3px; padding:16px; font-family:var(--mono); font-size:13px; line-height:2.2; color:var(--dim)">
+        <div style="color:var(--white); font-size:11px; letter-spacing:1px; margin-bottom:8px">General Formula:</div>
+        <div style="color:var(--cyan); font-size:15px; margin-bottom:16px">t = TMS × β / (M<sup>α</sup> − 1)</div>
+        <div style="display:grid; grid-template-columns:auto 1fr 1fr; gap:4px 20px; font-size:12px;">
+          <span style="color:var(--cyan)">Curve</span><span style="color:var(--cyan)">α</span><span style="color:var(--cyan)">β</span>
+          <span>SI</span><span>0.02</span><span>0.14</span>
+          <span>NI</span><span>0.02</span><span>0.14</span>
+          <span>VI</span><span>1.00</span><span>13.5</span>
+          <span style="color:var(--amber)">EI ★</span><span style="color:var(--amber)">2.00</span><span style="color:var(--amber)">80.0</span>
+        </div>
+        <div style="margin-top:16px; font-size:11px; color:var(--dim); line-height:1.8">
+          M = I_fault / Is  (fault multiple)<br>
+          EI = Extremely Inverse — used on Fanox relay<br>
+          Large M → small (M²−1) → fast trip ✓
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div><!-- end container -->
+
+<footer>
+  <div class="container">
+    <span>Mohammed Azam Ali MIET</span> · Electrical Commissioning & Testing Engineer ·
+    11kV HV Systems · <span>ADDC Abu Dhabi</span> · IEC 60255 · IEC 60909 ·
+    github.com/Mohammed-Engineer
+  </div>
+</footer>
+
+<!-- ── JAVASCRIPT ─────────────────────────────────────────────── -->
+<script>
+
+// ── IDMT CURVE ENGINE ────────────────────────────────────────────
+const CURVES = {
+  EI: { alpha: 2.00, beta: 80.0 },
+  SI: { alpha: 0.02, beta: 0.14 },
+  NI: { alpha: 0.02, beta: 0.14 },
+  VI: { alpha: 1.00, beta: 13.5  }
+};
+
+function idmt(M, TMS, curve) {
+  if (M <= 1.0) return Infinity;
+  const c = CURVES[curve];
+  const denom = Math.pow(M, c.alpha) - 1;
+  if (denom <= 0) return Infinity;
+  return TMS * c.beta / denom;
+}
+
+function fmtTime(t) {
+  if (!isFinite(t) || t > 9999) return '> 999';
+  return t.toFixed(3);
+}
+
+// ── READ INPUTS ───────────────────────────────────────────────────
+function getInputs() {
+  return {
+    oc_is:     parseFloat(document.getElementById('oc_is').value)   || 0.85,
+    oc_tms:    parseFloat(document.getElementById('oc_tms').value)   || 0.6,
+    oc_curve:  document.getElementById('oc_curve').value,
+    ct_ratio:  parseFloat(document.getElementById('ct_ratio').value) || 100,
+    ef_is:     parseFloat(document.getElementById('ef_is').value)   || 0.2,
+    ef_tms:    parseFloat(document.getElementById('ef_tms').value)   || 0.1,
+    ef_curve:  document.getElementById('ef_curve').value,
+    inst_set:  parseFloat(document.getElementById('inst_set').value) || 15,
+    sbef_is:   parseFloat(document.getElementById('sbef_is').value)  || 0.2,
+    sbef_tms:  parseFloat(document.getElementById('sbef_tms').value) || 0.8,
+    sbef_curve:document.getElementById('sbef_curve').value,
+    sbef_ct:   parseFloat(document.getElementById('sbef_ct').value)  || 2000
+  };
+}
+
+// ── SLIDER UPDATE ─────────────────────────────────────────────────
+function updateSlider() {
+  const M = parseFloat(document.getElementById('m_slider').value);
+  document.getElementById('m_display').textContent = 'M = ' + M.toFixed(1) + ' ×';
+  const inp = getInputs();
+  const oc   = idmt(M, inp.oc_tms, inp.oc_curve);
+  const ef   = idmt(M, inp.ef_tms, inp.ef_curve);
+  const sbef = idmt(M, inp.sbef_tms, inp.sbef_curve);
+  const inst = M >= inp.inst_set ? 0.05 : null;
+
+  document.getElementById('oc_time').textContent  = fmtTime(oc);
+  document.getElementById('ef_time').textContent  = fmtTime(ef);
+  document.getElementById('sbef_time').textContent = fmtTime(sbef);
+  document.getElementById('inst_time').textContent = inst !== null ? inst.toFixed(3) : '—';
+
+  const ocSt  = document.getElementById('oc_status');
+  const efSt  = document.getElementById('ef_status');
+  const instSt = document.getElementById('inst_time');
+  ocSt.innerHTML  = isFinite(oc)   ? '<span class="badge badge-pass">OPERATING</span>' : '<span class="badge badge-inst">BELOW PICKUP</span>';
+  efSt.innerHTML  = isFinite(ef)   ? '<span class="badge badge-pass">OPERATING</span>' : '<span class="badge badge-inst">BELOW PICKUP</span>';
+  if (inst !== null) instSt.style.color = 'var(--red)';
+  else instSt.style.color = 'var(--red)';
+}
+
+// ── SETTINGS TABLE ────────────────────────────────────────────────
+function buildSettingsTable(inp) {
+  const rows = [
+    {
+      func: 'Overcurrent',
+      ansi: '51',
+      is: inp.oc_is + ' × In = ' + (inp.oc_is * inp.ct_ratio).toFixed(0) + 'A primary',
+      tms: inp.oc_tms,
+      curve: inp.oc_curve,
+      t2: idmt(2, inp.oc_tms, inp.oc_curve),
+      t5: idmt(5, inp.oc_tms, inp.oc_curve),
+      t10: idmt(10, inp.oc_tms, inp.oc_curve),
+      color: 'var(--cyan)'
+    },
+    {
+      func: 'Earth Fault',
+      ansi: '51N',
+      is: inp.ef_is + ' × In = ' + (inp.ef_is * inp.ct_ratio).toFixed(0) + 'A primary',
+      tms: inp.ef_tms,
+      curve: inp.ef_curve,
+      t2: idmt(2, inp.ef_tms, inp.ef_curve),
+      t5: idmt(5, inp.ef_tms, inp.ef_curve),
+      t10: idmt(10, inp.ef_tms, inp.ef_curve),
+      color: 'var(--green)'
+    },
+    {
+      func: 'SBEF (LV side)',
+      ansi: '64',
+      is: inp.sbef_is + ' × In = ' + (inp.sbef_is * inp.sbef_ct).toFixed(0) + 'A primary (CT ' + inp.sbef_ct + '/1)',
+      tms: inp.sbef_tms,
+      curve: inp.sbef_curve,
+      t2: idmt(2, inp.sbef_tms, inp.sbef_curve),
+      t5: idmt(5, inp.sbef_tms, inp.sbef_curve),
+      t10: idmt(10, inp.sbef_tms, inp.sbef_curve),
+      color: '#b39ddb'
+    },
+    {
+      func: 'Instantaneous',
+      ansi: '50',
+      is: inp.inst_set + ' × In — High Set',
+      tms: '—',
+      curve: 'INST',
+      t2: '—',
+      t5: '—',
+      t10: '0.050s',
+      color: 'var(--red)'
+    }
+  ];
+
+  const tbody = document.getElementById('settings-body');
+  tbody.innerHTML = '';
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="color:${r.color}; font-weight:600">${r.func}</td>
+      <td><span class="badge" style="color:${r.color}; border-color:${r.color}; background:transparent">${r.ansi}</span></td>
+      <td style="font-family:var(--mono); font-size:12px">${r.is}</td>
+      <td style="font-family:var(--mono); color:var(--amber)">${r.tms}</td>
+      <td style="font-family:var(--mono); font-size:12px">${r.curve}</td>
+      <td style="font-family:var(--mono)">${isFinite(r.t2) ? fmtTime(r.t2) + 's' : r.t2}</td>
+      <td style="font-family:var(--mono)">${isFinite(r.t5) ? fmtTime(r.t5) + 's' : r.t5}</td>
+      <td style="font-family:var(--mono)">${isFinite(r.t10) ? fmtTime(r.t10) + 's' : r.t10}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── TEST VERIFICATION ─────────────────────────────────────────────
+const SITE_RESULTS = [
+  { relay:'OC  (TR1)', cond:'2 × Is', curve:'EI', is:0.85, tms:0.6,  M:2,  measured:15.12 },
+  { relay:'OC  (TR1)', cond:'5 × Is', curve:'EI', is:0.85, tms:0.6,  M:5,  measured:1.881 },
+  { relay:'OC  (TR2)', cond:'2 × Is', curve:'EI', is:0.85, tms:0.6,  M:2,  measured:16.01 },
+  { relay:'OC  (TR2)', cond:'5 × Is', curve:'EI', is:0.85, tms:0.6,  M:5,  measured:1.889 },
+  { relay:'EF  (TR1)', cond:'2 × Is', curve:'NI', is:0.2,  tms:0.1,  M:2,  measured:1.057 },
+  { relay:'EF  (TR2)', cond:'2 × Is', curve:'NI', is:0.2,  tms:0.1,  M:2,  measured:1.095 },
+  { relay:'SBEF (TR1)',cond:'2 × Is', curve:'EI', is:0.2,  tms:0.8,  M:2,  measured:21.63 },
+  { relay:'SBEF (TR1)',cond:'5 × Is', curve:'EI', is:0.2,  tms:0.8,  M:5,  measured:2.79  },
+  { relay:'SBEF (TR2)',cond:'2 × Is', curve:'EI', is:0.2,  tms:0.8,  M:2,  measured:21.77 },
+  { relay:'SBEF (TR2)',cond:'5 × Is', curve:'EI', is:0.2,  tms:0.8,  M:5,  measured:2.86  }
+];
+
+function buildVerifyTable() {
+  const tbody = document.getElementById('verify-body');
+  tbody.innerHTML = '';
+  let passCount = 0;
+
+  SITE_RESULTS.forEach(r => {
+    const calc = idmt(r.M, r.tms, r.curve);
+    const err  = Math.abs((r.measured - calc) / calc * 100);
+    const pass = err <= 10;
+    if (pass) passCount++;
+
+    const errClass = pass ? 'diff-ok' : 'diff-bad';
+    const badge    = pass
+      ? '<span class="badge badge-pass">✓ PASS</span>'
+      : '<span class="badge badge-fail">✗ FAIL</span>';
+
+    const tr = document.createElement('tr');
+    tr.className = pass ? 'verify-pass' : 'verify-fail';
+    tr.innerHTML = `
+      <td style="font-weight:600; color:${r.relay.startsWith('SBEF') ? '#b39ddb' : r.relay.startsWith('EF') ? 'var(--green)' : 'var(--cyan)'}">${r.relay}</td>
+      <td style="font-family:var(--mono)">${r.cond}</td>
+      <td style="font-family:var(--mono); font-size:11px">Is=${r.is}In TMS=${r.tms} ${r.curve}</td>
+      <td style="font-family:var(--mono); color:var(--amber)">${fmtTime(calc)}s</td>
+      <td style="font-family:var(--mono)">${r.measured.toFixed(3)}s</td>
+      <td class="${errClass}" style="font-family:var(--mono)">${err.toFixed(1)}%</td>
+      <td>${badge}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  const total = SITE_RESULTS.length;
+  const allPass = passCount === total;
+  document.getElementById('verify-summary').innerHTML = allPass
+    ? `<span style="color:var(--green)">🎯 ALL ${total} TESTS PASSED ✓ — Tolerance ±10% per IEC 60255-151</span>`
+    : `<span style="color:var(--red)">⚠ ${passCount}/${total} PASSED — Review failed tests</span>`;
+}
+
+// ── COORDINATION CHART ────────────────────────────────────────────
+let coordChart = null;
+
+function generateCurvePoints(TMS, curve, minM, maxM, pts) {
+  const data = [];
+  for (let i = 0; i < pts; i++) {
+    const M = minM * Math.pow(maxM / minM, i / (pts - 1));
+    const t = idmt(M, TMS, curve);
+    if (isFinite(t) && t > 0.001 && t < 500) {
+      data.push({ x: M, y: t });
+    }
+  }
+  return data;
+}
+
+function buildChart(inp) {
+  const ctx = document.getElementById('coordChart').getContext('2d');
+  if (coordChart) coordChart.destroy();
+
+  const ocData   = generateCurvePoints(inp.oc_tms,   inp.oc_curve,   1.01, 20, 120);
+  const efData   = generateCurvePoints(inp.ef_tms,   inp.ef_curve,   1.01, 20, 120);
+  const sbefData = generateCurvePoints(inp.sbef_tms, inp.sbef_curve, 1.01, 20, 120);
+
+  // Instantaneous line
+  const instData = [
+    { x: inp.inst_set, y: 0.005 },
+    { x: inp.inst_set, y: 100 }
+  ];
+
+  coordChart = new Chart(ctx, {
+    type: 'scatter',
+    data: {
+      datasets: [
+        {
+          label: 'OC 51 — ' + inp.oc_curve + ' TMS=' + inp.oc_tms,
+          data: ocData,
+          borderColor: '#00b4d8',
+          backgroundColor: 'transparent',
+          borderWidth: 2.5,
+          pointRadius: 0,
+          showLine: true,
+          tension: 0.3
+        },
+        {
+          label: 'EF 51N — ' + inp.ef_curve + ' TMS=' + inp.ef_tms,
+          data: efData,
+          borderColor: '#00e676',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          pointRadius: 0,
+          showLine: true,
+          tension: 0.3,
+          borderDash: [5, 3]
+        },
+        {
+          label: 'SBEF 64 — ' + inp.sbef_curve + ' TMS=' + inp.sbef_tms,
+          data: sbefData,
+          borderColor: '#b39ddb',
+          backgroundColor: 'transparent',
+          borderWidth: 2.5,
+          pointRadius: 0,
+          showLine: true,
+          tension: 0.3
+        },
+        {
+          label: 'I>> Instantaneous at ' + inp.inst_set + '× In',
+          data: instData,
+          borderColor: '#ff1744',
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          showLine: true,
+          borderDash: [3, 3]
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              return 'M=' + ctx.parsed.x.toFixed(1) + '×  t=' + ctx.parsed.y.toFixed(3) + 's';
+            }
+          },
+          backgroundColor: 'rgba(10,22,40,0.95)',
+          borderColor: '#00b4d8',
+          borderWidth: 1,
+          titleColor: '#00b4d8',
+          bodyColor: '#e8f4fd',
+          titleFont: { family: "'Share Tech Mono'" },
+          bodyFont:  { family: "'Share Tech Mono'" }
+        }
+      },
+      scales: {
+        x: {
+          type: 'logarithmic',
+          min: 1,
+          max: 20,
+          title: {
+            display: true,
+            text: 'Multiple of Setting  M = I_fault / Is',
+            color: '#4a6fa5',
+            font: { family: "'Share Tech Mono'", size: 11 }
+          },
+          grid: { color: 'rgba(26,58,107,0.4)' },
+          ticks: {
+            color: '#4a6fa5',
+            font: { family: "'Share Tech Mono'", size: 10 },
+            callback: function(val) {
+              const vals = [1, 2, 3, 5, 10, 15, 20];
+              return vals.includes(val) ? val + '×' : '';
+            }
+          }
+        },
+        y: {
+          type: 'logarithmic',
+          min: 0.05,
+          max: 100,
+          title: {
+            display: true,
+            text: 'Trip Time  t  (seconds)',
+            color: '#4a6fa5',
+            font: { family: "'Share Tech Mono'", size: 11 }
+          },
+          grid: { color: 'rgba(26,58,107,0.4)' },
+          ticks: {
+            color: '#4a6fa5',
+            font: { family: "'Share Tech Mono'", size: 10 },
+            callback: function(val) {
+              const vals = [0.05,0.1,0.2,0.5,1,2,5,10,20,50,100];
+              return vals.some(v => Math.abs(v - val)/v < 0.01) ? val + 's' : '';
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // Build legend
+  const legend = document.getElementById('curve-legend');
+  const items = [
+    { color: '#00b4d8', label: 'OC Relay 51 — ' + inp.oc_curve, dash: false },
+    { color: '#00e676', label: 'Earth Fault 51N — ' + inp.ef_curve, dash: true },
+    { color: '#b39ddb', label: 'SBEF 64 — ' + inp.sbef_curve, dash: false },
+    { color: '#ff1744', label: 'I>> Instantaneous', dash: true }
+  ];
+  legend.innerHTML = items.map(item => `
+    <div class="legend-item">
+      <div class="legend-line" style="background:${item.dash ? 'transparent' : item.color}; 
+           border-top: 2.5px ${item.dash ? 'dashed' : 'solid'} ${item.color}"></div>
+      <span>${item.label}</span>
+    </div>
+  `).join('');
+}
+
+// ── TIMELINE ──────────────────────────────────────────────────────
+const SCENARIOS = {
+  oc5: {
+    title: 'Overcurrent fault at 5× Is',
+    steps: (inp) => {
+      const t = idmt(5, inp.oc_tms, inp.oc_curve);
+      return [
+        { dot:'red',    time:'t = 0.000s', event:'⚡ Fault occurs', detail:'Fault current = 5 × Is = ' + (5 * inp.oc_is * inp.ct_ratio).toFixed(0) + 'A primary' },
+        { dot:'amber',  time:'t = 0.001s', event:'📡 CT detects fault current', detail:'Secondary current = ' + (5 * inp.oc_is).toFixed(3) + 'A  (CT ' + inp.ct_ratio + '/1)' },
+        { dot:'cyan',   time:'t = 0.001s', event:'🧠 Relay picks up — Is exceeded', detail:'M = 5.0 × Is  →  ' + inp.oc_curve + ' curve timing starts' },
+        { dot:'cyan',   time:'t = 0.001s → ' + fmtTime(t) + 's', event:'⏱️  IDMT timing running', detail:'t = ' + fmtTime(t) + 's  per ' + inp.oc_curve + ' curve formula' },
+        { dot:'red',    time:'t = ' + fmtTime(t) + 's', event:'📤 Relay sends TRIP signal', detail:'DC battery powers trip coil — 110V DC' },
+        { dot:'purple', time:'t = ' + (t + 0.08).toFixed(3) + 's', event:'💥 Circuit breaker opens', detail:'VCB interrupts fault current — 3 cycles (60ms)' },
+        { dot:'green',  time:'t = ' + (t + 0.14).toFixed(3) + 's', event:'✅ FAULT CLEARED', detail:'Healthy system remains energised — selectivity maintained' }
+      ];
+    }
+  },
+  oc2: {
+    title: 'Overcurrent fault at 2× Is',
+    steps: (inp) => {
+      const t = idmt(2, inp.oc_tms, inp.oc_curve);
+      return [
+        { dot:'red',   time:'t = 0.000s', event:'⚡ Fault occurs', detail:'Fault current = 2 × Is = ' + (2 * inp.oc_is * inp.ct_ratio).toFixed(0) + 'A primary' },
+        { dot:'amber', time:'t = 0.001s', event:'📡 CT detects fault current', detail:'Secondary = ' + (2 * inp.oc_is).toFixed(3) + 'A — above pickup Is' },
+        { dot:'cyan',  time:'t = 0.001s', event:'🧠 Relay picks up — starts timing', detail:'M = 2.0 × Is — lower M = longer trip time' },
+        { dot:'cyan',  time:'t = 0.001s → ' + fmtTime(t) + 's', event:'⏱️  IDMT timing — much slower', detail:'t = ' + fmtTime(t) + 's — inverse characteristic works correctly' },
+        { dot:'red',   time:'t = ' + fmtTime(t) + 's', event:'📤 Relay sends TRIP signal', detail:'Operated correctly — fault cleared before equipment damage' },
+        { dot:'green', time:'t = ' + (t + 0.14).toFixed(3) + 's', event:'✅ FAULT CLEARED', detail:'Notice: much slower than 5× fault — this is correct IDMT behaviour' }
+      ];
+    }
+  },
+  ef: {
+    title: 'Earth fault at 5× Is (EF relay)',
+    steps: (inp) => {
+      const t = idmt(5, inp.ef_tms, inp.ef_curve);
+      return [
+        { dot:'red',   time:'t = 0.000s', event:'⚡ Earth fault occurs — L-E', detail:'Phase touches earth — most common fault type (80% of all faults)' },
+        { dot:'amber', time:'t = 0.001s', event:'📡 Residual CT current detected', detail:'Three phase CTs sum does not cancel — residual current appears' },
+        { dot:'green', time:'t = 0.001s', event:'🧠 Earth fault relay 51N picks up', detail:'M = 5.0 × Is_EF  →  ' + inp.ef_curve + ' curve timing starts' },
+        { dot:'green', time:'t = 0.001s → ' + fmtTime(t) + 's', event:'⏱️  IDMT timing', detail:'Earth fault relay — sensitive, set at ' + inp.ef_is + ' × In' },
+        { dot:'red',   time:'t = ' + fmtTime(t) + 's', event:'📤 Earth fault relay trips CB', detail:'Circuit breaker opens — earth fault current interrupted' },
+        { dot:'green', time:'t = ' + (t + 0.14).toFixed(3) + 's', event:'✅ EARTH FAULT CLEARED', detail:'Correct earth fault relay operated — phase overcurrent relay did NOT trip' }
+      ];
+    }
+  },
+  sbef: {
+    title: 'High impedance earth fault (SBEF)',
+    steps: (inp) => {
+      const t = idmt(5, inp.sbef_tms, inp.sbef_curve);
+      return [
+        { dot:'red',    time:'t = 0.000s', event:'⚡ High impedance earth fault — LV side', detail:'Small earth fault current — HV earth fault relay CANNOT detect this' },
+        { dot:'amber',  time:'t = 0.001s', event:'📡 SBEF CT detects — LV 415V side', detail:'CT ratio 2000/1A — very sensitive measurement on LV winding neutral' },
+        { dot:'purple', time:'t = 0.001s', event:'🧠 SBEF relay picks up — Fanox SIA-C', detail:'M = 5 × Is_SBEF  →  EI curve timing starts — highly sensitive' },
+        { dot:'purple', time:'t = 0.001s → ' + fmtTime(t) + 's', event:'⏱️  SBEF IDMT timing', detail:'t = ' + fmtTime(t) + 's — intentionally slower to allow HV relays to operate first' },
+        { dot:'red',    time:'t = ' + fmtTime(t) + 's', event:'📤 SBEF relay sends TRIP signal', detail:'Trips both HV and LV breakers — completely isolates transformer' },
+        { dot:'green',  time:'t = ' + (t + 0.14).toFixed(3) + 's', event:'✅ FAULT CLEARED BY SBEF', detail:'This is the unique purpose of SBEF — detects what other relays miss' }
+      ];
+    }
+  },
+  inst: {
+    title: 'Heavy fault — Instantaneous I>>',
+    steps: (inp) => [
+      { dot:'red',   time:'t = 0.000s', event:'⚡ HEAVY FAULT — busbar or close-in fault', detail:'Fault current >> 15× Is — catastrophic damage within milliseconds' },
+      { dot:'amber', time:'t = 0.001s', event:'📡 CT detects massive current', detail:'Current exceeds I>> threshold of ' + inp.inst_set + '× In' },
+      { dot:'cyan',  time:'t = 0.001s', event:'🧠 Instantaneous element 50 picks up', detail:'No timing — immediate trip signal. Does not wait for IDMT timer.' },
+      { dot:'red',   time:'t = 0.050s', event:'📤 INSTANT TRIP — 50ms operating time', detail:'Relay operates in 50ms — 2.5 cycles. Minimum time for electronics.' },
+      { dot:'green', time:'t = 0.110s', event:'✅ FAULT CLEARED — 5.5 cycles total', detail:'Equipment saved. Instantaneous element prevents catastrophic damage.' }
+    ]
+  }
+};
+
+function runTimeline() {
+  const key = document.getElementById('scenario_select').value;
+  const inp = getInputs();
+  const scenario = SCENARIOS[key];
+  const steps = scenario.steps(inp);
+
+  const tl = document.getElementById('timeline');
+  tl.innerHTML = steps.map((s, i) => `
+    <div class="tl-step" id="tl_step_${i}">
+      <div class="tl-dot ${s.dot}"></div>
+      <div class="tl-content">
+        <div class="tl-time">${s.time}</div>
+        <div class="tl-event">${s.event}</div>
+        <div class="tl-detail">${s.detail}</div>
+      </div>
+    </div>
+  `).join('');
+
+  // Staggered animation
+  steps.forEach((_, i) => {
+    setTimeout(() => {
+      const el = document.getElementById('tl_step_' + i);
+      if (el) el.classList.add('visible');
+    }, i * 180);
+  });
+}
+
+// ── MAIN CALCULATE FUNCTION ───────────────────────────────────────
+function calculate() {
+  const inp = getInputs();
+  buildSettingsTable(inp);
+  buildChart(inp);
+  updateSlider();
+  buildVerifyTable();
+  buildHighSetTables();
+  runTimeline();
+}
+
+
+// ── HIGH SET TEST DATA ────────────────────────────────────────────
+const HIGHSET1 = [
+  { phase:'R', func:'Overcurrent I>>',  setting:15.0, pickup:15.6, optime_ms:76,  max_ms:100 },
+  { phase:'Y', func:'Overcurrent I>>',  setting:15.0, pickup:15.4, optime_ms:78,  max_ms:100 },
+  { phase:'B', func:'Overcurrent I>>',  setting:15.0, pickup:15.8, optime_ms:79,  max_ms:100 },
+  { phase:'E/F', func:'Earth Fault Ie>>',setting:4.0, pickup:4.3,  optime_ms:82,  max_ms:100 },
+];
+
+const HIGHSET2 = [
+  { phase:'R',   func:'Overcurrent I>>>',  setting:0.78, pickup:0.79, optime_s:180, exp_s:180 },
+  { phase:'Y',   func:'Overcurrent I>>>',  setting:0.78, pickup:0.79, optime_s:180, exp_s:180 },
+  { phase:'B',   func:'Overcurrent I>>>',  setting:0.78, pickup:0.79, optime_s:180, exp_s:180 },
+  { phase:'E/F', func:'Earth Fault Ie>>>', setting:null, pickup:null,  optime_s:null, exp_s:null },
+];
+
+function buildHighSetTables() {
+  // Part A — I>> Instantaneous
+  const tbody1 = document.getElementById('highset1-body');
+  if (!tbody1) return;
+  tbody1.innerHTML = '';
+  let pass1 = 0;
+
+  HIGHSET1.forEach(r => {
+    const lo = (r.setting * 0.95).toFixed(2);
+    const hi = (r.setting * 1.05).toFixed(2);
+    const pickupOk = r.pickup >= r.setting * 0.95 && r.pickup <= r.setting * 1.05;
+    const timeOk   = r.optime_ms <= r.max_ms;
+    const pass = pickupOk && timeOk;
+    if (pass) pass1++;
+
+    const pickupBadge = pickupOk
+      ? '<span class="badge badge-pass">✓ OK</span>'
+      : '<span class="badge badge-fail">✗ OUT</span>';
+    const badge = pass
+      ? '<span class="badge badge-pass">✓ PASS</span>'
+      : '<span class="badge badge-fail">✗ FAIL</span>';
+
+    const isEF = r.phase === 'E/F';
+    const phColor = isEF ? 'color:var(--green)' : 'color:var(--amber)';
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-weight:700; ${phColor}; font-family:var(--mono)">${r.phase}</td>
+      <td style="font-family:var(--mono); font-size:12px">${r.func}</td>
+      <td style="font-family:var(--mono); color:var(--amber)">${r.setting.toFixed(1)} A</td>
+      <td style="font-family:var(--mono); font-size:11px; color:var(--dim)">${lo}A — ${hi}A (±5%)</td>
+      <td style="font-family:var(--mono)">${r.pickup.toFixed(1)} A &nbsp; ${pickupBadge}</td>
+      <td style="font-family:var(--mono); color:var(--cyan)">${r.optime_ms} ms</td>
+      <td style="font-family:var(--mono); color:var(--dim)">< ${r.max_ms} ms</td>
+      <td>${badge}</td>
+    `;
+    tbody1.appendChild(tr);
+  });
+
+  // Part B — I>>> Thermal
+  const tbody2 = document.getElementById('highset2-body');
+  if (!tbody2) return;
+  tbody2.innerHTML = '';
+  let pass2 = 0;
+
+  HIGHSET2.forEach(r => {
+    const isNA = r.setting === null;
+    let badge = '';
+    let pickupStr = '—';
+    let timeStr = '—';
+    let expStr = '—';
+    let rangeStr = '—';
+
+    if (!isNA) {
+      const lo = (r.setting * 0.95).toFixed(3);
+      const hi = (r.setting * 1.05).toFixed(3);
+      rangeStr = lo + 'A — ' + hi + 'A (±5%)';
+      const pickupOk = r.pickup >= r.setting * 0.95 && r.pickup <= r.setting * 1.05;
+      const timeOk   = Math.abs(r.optime_s - r.exp_s) <= r.exp_s * 0.05;
+      const pass = pickupOk && timeOk;
+      if (pass) pass2++;
+      pickupStr = r.pickup.toFixed(2) + ' A';
+      timeStr   = r.optime_s + ' s';
+      expStr    = r.exp_s + ' s';
+      badge = pass
+        ? '<span class="badge badge-pass">✓ PASS</span>'
+        : '<span class="badge badge-fail">✗ FAIL</span>';
+    } else {
+      badge = '<span class="badge badge-inst">N/A</span>';
+      pass2++; // N/A counts as pass
+    }
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-weight:700; color:#b39ddb; font-family:var(--mono)">${r.phase}</td>
+      <td style="font-family:var(--mono); font-size:12px">${r.func}</td>
+      <td style="font-family:var(--mono); color:var(--amber)">${isNA ? '—' : r.setting.toFixed(2) + ' A'}</td>
+      <td style="font-family:var(--mono); font-size:11px; color:var(--dim)">${rangeStr}</td>
+      <td style="font-family:var(--mono)">${pickupStr}</td>
+      <td style="font-family:var(--mono); color:#b39ddb">${timeStr}</td>
+      <td style="font-family:var(--mono); color:var(--dim)">${expStr}</td>
+      <td>${badge}</td>
+    `;
+    tbody2.appendChild(tr);
+  });
+
+  // Summary
+  const totalPass = pass1 + pass2;
+  const total = HIGHSET1.length + HIGHSET2.length;
+  const allPass = totalPass === total;
+  const summary = document.getElementById('highset-summary');
+  if (summary) {
+    summary.innerHTML = allPass
+      ? `<span style="color:var(--green)">
+           🎯 ALL HIGH SET TESTS PASSED ✓<br>
+           <span style="font-size:11px; color:var(--dim)">
+             I>> Instantaneous: ${HIGHSET1.length}/${HIGHSET1.length} PASS &nbsp;|&nbsp;
+             I>>> Thermal: ${HIGHSET2.length}/${HIGHSET2.length} PASS &nbsp;|&nbsp;
+             All pickup currents within ±5% of setting &nbsp;|&nbsp;
+             All operating times within tolerance
+           </span>
+         </span>`
+      : `<span style="color:var(--red)">⚠ ${totalPass}/${total} PASSED — Review failed tests</span>`;
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  calculate();
+  // Auto-update slider
+  document.getElementById('m_slider').addEventListener('input', updateSlider);
+});
+
+</script>
+</body>
+</html>
