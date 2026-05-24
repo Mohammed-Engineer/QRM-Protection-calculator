@@ -1,7 +1,7 @@
 # 11kV QRM Protection Relay Calculator
 ### ADDC Abu Dhabi — Fanox Relay — IEC 60255-151
 
-[![Live Demo](https://img.shields.io/badge/▶%20Live%20Demo-Open%20in%20Browser-00b4d8?style=for-the-badge)](https://mohammed-engineer.github.io/QRM-Protection-Calculator)
+[![Live Demo](https://img.shields.io/badge/▶%20Live%20Demo-Open%20in%20Browser-00b4d8?style=for-the-badge)](https://mohammed-engineer.github.io/QRM-Protection-calculator)
 
 ---
 
